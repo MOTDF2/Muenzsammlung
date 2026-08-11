@@ -83,7 +83,7 @@
 
   .view{display:none;}
   .view.active{display:block; animation:fade .2s ease;}
-  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes fade{from{opacity:0;} to{opacity:1;}}
 
   /* --- Dashboard Hero --- */
   .hero-card{
@@ -360,7 +360,7 @@
   .series-progress-fill{height:100%; background:var(--copper); border-radius:5px; transition:width .3s ease;}
 
   .fehlende-fixed-top{
-    position:sticky; top:var(--topbar-h, 76px); z-index:5;
+    position:-webkit-sticky; position:sticky; top:var(--topbar-h, 76px); z-index:5;
     background:var(--bg);
   }
   .fehlende-col-header-row{
@@ -424,7 +424,7 @@
   /* --- Sammlung: 7-Spalten-Layout nach Münztyp --- */
   /* --- Sammlung: fixer Kopfbereich + scrollbarer Jahrgangs-Bereich --- */
   .sammlung-fixed-top{
-    position:sticky; top:var(--topbar-h, 76px); z-index:5;
+    position:-webkit-sticky; position:sticky; top:var(--topbar-h, 76px); z-index:5;
     background:var(--bg); padding-bottom:6px;
   }
   .search-wrap{position:relative;}
@@ -1231,6 +1231,19 @@ async function renderSammlung(){
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchTerm = e.target.value;
   renderSammlung();
+});
+
+// iOS-Workaround: nach Schliessen der Bildschirmtastatur berechnen manche
+// mobile Browser position:fixed-Elemente (Kopf-/Fusszeile) falsch neu.
+// Erzwingt nach Tastatur-Schliessung eine Neuberechnung des Layouts.
+function fixFixedLayoutAfterKeyboard(){
+  window.scrollTo(0, 0);
+  document.body.style.display = 'none';
+  void document.body.offsetHeight; // Reflow erzwingen
+  document.body.style.display = '';
+}
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  el.addEventListener('blur', () => setTimeout(fixFixedLayoutAfterKeyboard, 50));
 });
 
 const filterPanel = document.getElementById('filterPanel');
