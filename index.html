@@ -23,6 +23,7 @@
     --ink-soft:#65594A;
     --border:#E4DED2;
     --copper:#B5652D;
+    --copper-dark:#8A4C20;
     --copper-soft:#E8D3C0;
     --slate:#4A5A63;
     --alert:#A8321F;
@@ -36,6 +37,7 @@
     --ink-soft:#B3A897;
     --border:#332D23;
     --copper:#D68A4C;
+    --copper-dark:#B5692B;
     --copper-soft:#3A2B1D;
     --slate:#7C99A4;
     --alert:#D6664F;
@@ -237,9 +239,9 @@
     position:fixed; right:20px; z-index:25;
     bottom:calc(var(--tabbar-h, 70px) + 16px);
     width:54px; height:54px; border-radius:50%;
-    background:var(--copper); color:#fff; border:none;
+    background:var(--copper-dark); color:#fff; border:none;
     font-size:26px; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 18px rgba(181,101,45,0.35); cursor:pointer;
+    box-shadow:0 6px 18px rgba(138,76,32,0.45); cursor:pointer;
   }
 
   /* --- Formular-Sheet (Modal) --- */
@@ -280,6 +282,7 @@
   }
   input:focus, select:focus, textarea:focus{outline:2px solid var(--copper); outline-offset:1px;}
   textarea{resize:vertical; min-height:60px;}
+  #range-from, #range-to{font-size:16px;}
 
   .sheet-actions{
     display:flex; gap:10px; margin-top:18px;
@@ -499,6 +502,11 @@
         <div class="lbl">Fehlende Münzen</div>
       </div>
     </div>
+
+    <div class="section-title">
+      <h2>Gesamtfortschritt</h2>
+    </div>
+    <div id="totalProgress"></div>
 
     <div class="section-title">
       <h2>Fortschritt je Münztyp</h2>
@@ -821,8 +829,11 @@ async function renderDashboard(){
 
   const range = await loadMissingRange();
   const progressList = document.getElementById('progressList');
+  let totalOwned = 0, totalPossible = 0;
   progressList.innerHTML = SWISS_COIN_TYPES.map(t => {
     const prog = computeSeriesProgress(t.label, range, coins);
+    totalOwned += prog.ownedCount;
+    totalPossible += prog.total;
     const percent = prog.total > 0 ? Math.round((prog.ownedCount / prog.total) * 100) : 0;
     return `
       <div class="series-card">
@@ -836,6 +847,19 @@ async function renderDashboard(){
         <div class="series-progress-bg"><div class="series-progress-fill" style="width:${percent}%"></div></div>
       </div>`;
   }).join('');
+
+  const totalPercent = totalPossible > 0 ? Math.round((totalOwned / totalPossible) * 100) : 0;
+  document.getElementById('totalProgress').innerHTML = `
+    <div class="series-card">
+      <div class="series-head">
+        <div>
+          <div class="s-name">Alle Münztypen</div>
+          <div class="s-sub">${totalOwned}/${totalPossible} vorhanden</div>
+        </div>
+        <div class="s-percent">${totalPercent}%</div>
+      </div>
+      <div class="series-progress-bg"><div class="series-progress-fill" style="width:${totalPercent}%"></div></div>
+    </div>`;
 }
 
 /* ======================================================
