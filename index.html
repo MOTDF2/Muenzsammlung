@@ -50,9 +50,8 @@
     font-family:var(--font-main);
     -webkit-font-smoothing:antialiased;
     transition:background .25s ease, color .25s ease;
-    height:100vh; height:100svh; height:var(--app-vh, 100svh);
-    display:grid; grid-template-rows:auto 1fr auto;
-    overflow:hidden;
+    padding-top:var(--topbar-h, 76px);
+    padding-bottom:var(--tabbar-h, 76px);
   }
   .app-shell{
     display:contents;
@@ -61,7 +60,7 @@
   .serif{font-family:var(--font-main);}
 
   header.topbar{
-    z-index:20;
+    position:fixed; top:0; left:0; right:0; z-index:20;
     display:flex; align-items:center; justify-content:space-between;
     padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
     background:var(--bg);
@@ -80,10 +79,7 @@
     cursor:pointer; font-size:17px; color:var(--ink);
   }
 
-  main{
-    min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  }
-  .main-inner{max-width:640px; margin:0 auto; padding:20px; height:100%;}
+  .main-inner{max-width:640px; margin:0 auto; padding:20px;}
 
   .view{display:none;}
   .view.active{display:block; animation:fade .2s ease;}
@@ -165,7 +161,7 @@
 
   /* --- Bottom nav --- */
   nav.tabbar{
-    z-index:30;
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
     background:var(--surface); border-top:1px solid var(--border);
     display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }
@@ -363,17 +359,10 @@
   }
   .series-progress-fill{height:100%; background:var(--copper); border-radius:5px; transition:width .3s ease;}
 
-  #view-fehlende.active{
-    display:flex; flex-direction:column; max-height:100%; overflow:hidden;
-  }
   .fehlende-fixed-top{
-    flex-shrink:0; background:var(--bg);
+    position:sticky; top:var(--topbar-h, 76px); z-index:5;
+    background:var(--bg);
   }
-  .fehlende-scroll-body{
-    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    scrollbar-width:none; -ms-overflow-style:none;
-  }
-  .fehlende-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
   .fehlende-col-header-row{
     display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
   }
@@ -434,19 +423,11 @@
 
   /* --- Sammlung: 7-Spalten-Layout nach Münztyp --- */
   /* --- Sammlung: fixer Kopfbereich + scrollbarer Jahrgangs-Bereich --- */
-  #view-sammlung.active{
-    display:flex; flex-direction:column;
-    max-height:100%; overflow:hidden;
-  }
   .sammlung-fixed-top{
-    flex-shrink:0; background:var(--bg);
+    position:sticky; top:var(--topbar-h, 76px); z-index:5;
+    background:var(--bg); padding-bottom:6px;
   }
   .search-wrap{position:relative;}
-  .sammlung-scroll-body{
-    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    scrollbar-width:none; -ms-overflow-style:none;
-  }
-  .sammlung-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
   .sammlung-col-header-row{
     display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
     margin-top:4px;
@@ -708,16 +689,13 @@
    Quelle). Läuft so früh wie möglich, plus bei Resize/Rotation/
    Rückkehr in den Vordergrund, falls der Wert sich noch ändert.
    ====================================================== */
-function updateAppHeightVar(){
-  document.documentElement.style.setProperty('--app-vh', window.innerHeight + 'px');
+function updateTopbarHeightVar(){
+  const topbar = document.querySelector('header.topbar');
+  document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
 }
-updateAppHeightVar();
-window.addEventListener('resize', updateAppHeightVar);
-window.addEventListener('orientationchange', () => setTimeout(updateAppHeightVar, 150));
-window.addEventListener('pageshow', updateAppHeightVar);
-document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible') updateAppHeightVar();
-});
+updateTopbarHeightVar();
+window.addEventListener('resize', updateTopbarHeightVar);
+window.addEventListener('orientationchange', () => setTimeout(updateTopbarHeightVar, 150));
 
 /* ======================================================
    STORAGE-ABSTRAKTION
@@ -802,11 +780,7 @@ function navigate(viewName){
   });
   const fab = document.getElementById('fabAdd');
   fab.style.display = (viewName === 'sammlung') ? 'flex' : 'none';
-  document.querySelector('main').scrollTop = 0;
-  const sammlungBody = document.getElementById('sammlungScrollBody');
-  if(sammlungBody) sammlungBody.scrollTop = 0;
-  const fehlendeBody = document.getElementById('fehlendeScrollBody');
-  if(fehlendeBody) fehlendeBody.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 document.querySelectorAll('[data-nav]').forEach(el => {
   el.addEventListener('click', (e) => {
@@ -1606,6 +1580,7 @@ function updateTabbarHeightVar(){
   document.documentElement.style.setProperty('--tabbar-h', tabbar.offsetHeight + 'px');
 }
 window.addEventListener('resize', updateTabbarHeightVar);
+window.addEventListener('orientationchange', () => setTimeout(updateTabbarHeightVar, 150));
 
 /* ======================================================
    INIT
