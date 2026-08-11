@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Münzsammlung</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#B5652D">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Münzsammlung">
+<style>
+  :root{
+    /* Aptos ist eine Microsoft-Systemschrift, nicht über Google Fonts/CDN verfügbar.
+       Ist sie lokal installiert (z.B. via MS Office), wird sie genutzt – sonst Fallback
+       auf Segoe UI / System-UI. Kein externer Font-Import mehr nötig (besser fürs Offline-Ziel). */
+    --font-main: 'Aptos', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --bg:#F7F5F1;
+    --surface:#FFFFFF;
+    --surface-raised:#FFFFFF;
+    --ink:#1E1B16;
+    --ink-soft:#65594A;
+    --border:#E4DED2;
+    --copper:#B5652D;
+    --copper-soft:#E8D3C0;
+    --slate:#4A5A63;
+    --alert:#A8321F;
+    --shadow: 0 1px 2px rgba(30,27,22,0.06), 0 4px 12px rgba(30,27,22,0.05);
+  }
+  [data-theme="dark"]{
+    --bg:#15130F;
+    --surface:#1E1B16;
+    --surface-raised:#26221B;
+    --ink:#F2EDE4;
+    --ink-soft:#B3A897;
+    --border:#332D23;
+    --copper:#D68A4C;
+    --copper-soft:#3A2B1D;
+    --slate:#7C99A4;
+    --alert:#D6664F;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-main);
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease, color .25s ease;
+    padding-bottom:76px;
+    padding-top:var(--topbar-h, 70px);
+  }
+  .mono{font-family:var(--font-main);}
+  .serif{font-family:var(--font-main);}
+
+  header.topbar{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 14px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .brand h1{
+    font-family:var(--font-main); font-weight:600; font-size:22px; letter-spacing:-0.01em;
+  }
+  .theme-toggle{
+    width:40px; height:40px; border-radius:12px;
+    background:var(--surface-raised); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:17px; color:var(--ink);
+  }
+
+  main{max-width:640px; margin:0 auto; padding:20px;}
+
+  .view{display:none;}
+  .view.active{display:block; animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  /* --- Dashboard Hero --- */
+  .hero-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:24px; box-shadow:var(--shadow); margin-bottom:16px;
+    position:relative; overflow:hidden;
+  }
+  .hero-card::before{
+    content:""; position:absolute; top:-40%; right:-15%;
+    width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle, var(--copper-soft) 0%, transparent 70%);
+    opacity:.6; pointer-events:none;
+  }
+  .hero-label{
+    font-family:var(--font-main); font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px;
+  }
+  .hero-value{
+    font-family:var(--font-main); font-weight:700; font-size:44px; letter-spacing:-0.02em;
+    line-height:1; display:flex; align-items:baseline; gap:8px;
+  }
+  .hero-value .ccy{font-size:20px; color:var(--ink-soft); font-family:var(--font-main); font-weight:500;}
+  .hero-sub{
+    margin-top:10px; font-size:13px; color:var(--ink-soft);
+  }
+
+  .stat-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;
+  }
+  .stat-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:16px;
+  }
+  .stat-card .num{
+    font-family:var(--font-main); font-weight:600; font-size:26px;
+  }
+  .stat-card .lbl{
+    font-size:12px; color:var(--ink-soft); margin-top:2px;
+  }
+
+  .section-title{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:22px 0 10px;
+  }
+  .section-title h2{
+    font-family:var(--font-main); font-size:16px; font-weight:600;
+  }
+  .section-title a{
+    font-size:12px; color:var(--copper); text-decoration:none; font-weight:500;
+  }
+
+  .empty-state{
+    border:1px dashed var(--border); border-radius:16px; padding:28px 20px;
+    text-align:center; color:var(--ink-soft); font-size:14px;
+  }
+  .empty-state .icon{font-size:26px; margin-bottom:8px; display:block;}
+
+  /* --- Coin catalog card (signature element) --- */
+  .coin-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px; display:flex; gap:12px; align-items:center; margin-bottom:10px;
+    box-shadow:var(--shadow);
+  }
+  .coin-thumb{
+    width:52px; height:52px; border-radius:50%;
+    background:linear-gradient(135deg, var(--copper-soft), var(--copper));
+    flex-shrink:0;
+  }
+  .coin-info{flex:1; min-width:0;}
+  .coin-info .name{font-weight:600; font-size:14px;}
+  .coin-info .meta{
+    font-family:var(--font-main); font-size:11px; color:var(--ink-soft); margin-top:3px;
+  }
+  .coin-value{font-family:var(--font-main); font-size:13px; font-weight:500;}
+
+  /* --- Bottom nav --- */
+  nav.tabbar{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:var(--surface); border-top:1px solid var(--border);
+    display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav.tabbar button{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:none; border:none; cursor:pointer; padding:6px 2px;
+    color:var(--ink-soft); font-family:var(--font-main); font-size:10.5px; font-weight:500;
+    border-radius:10px;
+  }
+  nav.tabbar button .ic{font-size:19px; line-height:1;}
+  nav.tabbar button.active{color:var(--copper);}
+  nav.tabbar button.active .ic{transform:translateY(-1px);}
+
+  .placeholder-view{
+    padding:40px 20px; text-align:center; color:var(--ink-soft);
+  }
+  .placeholder-view h2{font-family:var(--font-main); color:var(--ink); margin-bottom:6px; font-size:18px;}
+  .placeholder-view p{font-size:13px; line-height:1.5;}
+
+  .loading{
+    display:flex; align-items:center; justify-content:center; padding:40px;
+    color:var(--ink-soft); font-size:13px;
+  }
+
+  /* --- Sammlung: Suche & Liste --- */
+  .search-row{
+    display:flex; gap:10px; margin-bottom:14px;
+  }
+  .search-input{
+    flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:11px 14px; font-size:14px; color:var(--ink); font-family:var(--font-main);
+  }
+  .search-input:focus{outline:2px solid var(--copper); outline-offset:1px;}
+  .search-input::placeholder{color:var(--ink-soft);}
+
+  .filter-toggle-btn{
+    position:relative; width:44px; height:44px; flex-shrink:0; border-radius:12px;
+    background:var(--surface); border:1px solid var(--border); font-size:17px;
+    cursor:pointer; color:var(--ink);
+  }
+  .filter-badge{
+    position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 3px;
+    border-radius:9px; background:var(--copper); color:#fff; font-size:10px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-main);
+  }
+
+  .filter-panel{
+    display:none; background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px; box-shadow:var(--shadow);
+    position:absolute; top:100%; left:0; right:0; z-index:16; margin-top:6px;
+  }
+  .filter-panel.open{display:block;}
+  .filter-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;}
+
+  .list-count{
+    font-family:var(--font-main); font-size:11px; color:var(--ink-soft);
+    margin-bottom:12px; letter-spacing:.04em;
+  }
+
+  .coin-card{cursor:pointer;}
+  .coin-card .coin-thumb{
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+    font-size:18px; color:var(--surface);
+  }
+  .coin-card .coin-thumb img{width:100%; height:100%; object-fit:cover;}
+  .coin-info .qty{
+    display:inline-block; font-family:var(--font-main); font-size:10.5px;
+    color:var(--copper); margin-left:6px;
+  }
+
+  /* --- FAB --- */
+  .fab{
+    position:fixed; right:20px; bottom:88px; z-index:25;
+    width:54px; height:54px; border-radius:50%;
+    background:var(--copper); color:#fff; border:none;
+    font-size:26px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px rgba(181,101,45,0.35); cursor:pointer;
+  }
+
+  /* --- Formular-Sheet (Modal) --- */
+  .sheet-overlay{
+    position:fixed; inset:0; background:rgba(20,17,12,0.45); z-index:40;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .sheet-overlay.open{display:flex;}
+  .sheet{
+    background:var(--bg); width:100%; max-width:640px; max-height:92vh;
+    border-radius:20px 20px 0 0; overflow-y:auto; padding:18px 20px calc(24px + env(safe-area-inset-bottom));
+    animation:slideup .22s ease;
+  }
+  @keyframes slideup{from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .sheet-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;
+    position:sticky; top:0; background:var(--bg); padding-top:4px; z-index:2;
+  }
+  .sheet-header h2{font-family:var(--font-main); font-size:18px; font-weight:600;}
+  .sheet-close{
+    width:32px; height:32px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink); font-size:15px; cursor:pointer;
+  }
+
+  .field-group{margin-bottom:16px;}
+  .field-group .fg-title{
+    font-family:var(--font-main); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--copper); margin-bottom:8px;
+  }
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;}
+  .field-row.full{grid-template-columns:1fr;}
+  label{
+    display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:4px; font-weight:500;
+  }
+  input, select, textarea{
+    width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:9px 11px; font-size:14px; color:var(--ink); font-family:var(--font-main);
+  }
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--copper); outline-offset:1px;}
+  textarea{resize:vertical; min-height:60px;}
+
+  .sheet-actions{
+    display:flex; gap:10px; margin-top:18px;
+  }
+  .btn{
+    flex:1; padding:13px; border-radius:12px; border:none; font-size:14px; font-weight:600;
+    cursor:pointer; font-family:var(--font-main);
+  }
+  .btn-primary{background:var(--copper); color:#fff;}
+  .btn-secondary{background:var(--surface); color:var(--ink); border:1px solid var(--border);}
+  .btn-danger{background:transparent; color:var(--alert); border:1px solid var(--alert);}
+
+  /* --- Export --- */
+  .export-actions{display:flex; flex-direction:column; gap:10px; margin-bottom:24px;}
+  .export-btn{text-align:center;}
+
+  /* --- Druckansicht (PDF-Export via window.print) --- */
+  .print-only{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    .print-only, .print-only *{visibility:visible;}
+    .print-only{
+      display:block; position:absolute; top:0; left:0; width:100%; padding:20px;
+      background:#fff; color:#000;
+    }
+    .print-only table{width:100%; border-collapse:collapse; font-size:11px;}
+    .print-only th, .print-only td{border:1px solid #999; padding:4px 6px; text-align:left;}
+    .print-only h1{font-size:18px; margin-bottom:4px;}
+    .print-only .print-meta{font-size:11px; color:#555; margin-bottom:14px;}
+  }
+
+  /* --- Auswertungs-Listen (Übersicht) --- */
+  .breakdown-list{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:6px 16px; margin-bottom:6px;
+  }
+  .breakdown-row{
+    padding:10px 0; border-bottom:1px solid var(--border);
+  }
+  .breakdown-row:last-child{border-bottom:none;}
+  .breakdown-row .brow-top{
+    display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;
+  }
+  .breakdown-row .brow-label{font-size:13px; font-weight:500;}
+  .breakdown-row .brow-sub{
+    font-family:var(--font-main); font-size:10.5px; color:var(--ink-soft); margin-left:6px;
+  }
+  .breakdown-row .brow-value{
+    font-family:var(--font-main); font-size:12.5px; color:var(--ink-soft);
+  }
+  .brow-bar-bg{
+    height:6px; border-radius:4px; background:var(--copper-soft); overflow:hidden;
+  }
+  .brow-bar-fill{
+    height:100%; background:var(--copper); border-radius:4px;
+  }
+
+  /* --- Fehlende Münzen: Serien-Karten --- */
+  .hint-box{
+    background:var(--copper-soft); border:1px solid var(--copper); border-radius:14px;
+    padding:12px 14px; font-size:12.5px; line-height:1.5; color:var(--ink); margin-bottom:16px;
+  }
+  /* --- Fehlende Münzen: 7-Spalten-Layout mit fixer Kopfzeile --- */
+  /* --- Fortschritt je Münztyp (Übersicht) --- */
+  .series-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .series-head{
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .series-head .s-name{font-weight:600; font-size:14px;}
+  .series-head .s-sub{font-size:11px; color:var(--ink-soft); margin-top:3px;}
+  .series-head .s-percent{font-size:17px; font-weight:700; color:var(--copper);}
+  .series-progress-bg{
+    height:7px; border-radius:5px; background:var(--copper-soft); overflow:hidden; margin-top:9px;
+  }
+  .series-progress-fill{height:100%; background:var(--copper); border-radius:5px; transition:width .3s ease;}
+
+  #view-fehlende.active{
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .fehlende-fixed-top{
+    flex-shrink:0; background:var(--bg);
+  }
+  .fehlende-scroll-body{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .fehlende-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
+  .fehlende-col-header-row{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
+  }
+  .fehlende-columns{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
+  }
+  .fehlende-col{
+    display:flex; flex-direction:column; gap:5px;
+  }
+  .fehlende-col-header{
+    background:var(--bg);
+    font-size:9.5px; font-weight:700; text-align:center; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.01em; padding:6px 0;
+    border-bottom:1px solid var(--border); margin-bottom:2px; line-height:1.25;
+  }
+  .year-grid{
+    display:grid; grid-template-columns:repeat(10, 1fr); gap:6px;
+  }
+  .year-chip{
+    border-radius:8px; padding:5px 0; text-align:center;
+    font-family:var(--font-main); font-size:10.5px;
+    border:1px solid var(--border);
+  }
+  .year-chip.owned{background:var(--copper); color:#fff; border-color:var(--copper);}
+  .fehlende-col .year-chip{padding:5px 2px;}
+  .fehlende-col .year-chip.missing{color:var(--ink-soft);}
+  .fehlende-col .year-chip.decade-gap{margin-top:5px;}
+
+  /* --- Münztyp-Kacheln (Neue Münze) --- */
+  .nominal-tile-grid{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:6px;
+  }
+  .nominal-tile{
+    border-radius:10px; padding:8px 2px; text-align:center; cursor:pointer;
+    font-size:10.5px; font-weight:600; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink); line-height:1.3;
+  }
+  .nominal-tile.selected{background:var(--copper); color:#fff; border-color:var(--copper);}
+  .nominal-tile{position:relative;}
+  .nominal-tile .tile-badge{
+    position:absolute; top:-6px; right:-6px; min-width:16px; height:16px; padding:0 3px;
+    border-radius:8px; background:var(--copper); color:#fff; font-size:9.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-main);
+    border:1.5px solid var(--bg);
+  }
+  .nominal-tile.selected .tile-badge{background:#fff; color:var(--copper);}
+
+  .pending-list{display:flex; flex-wrap:wrap; gap:6px;}
+  .pending-chip{
+    display:flex; align-items:center; gap:6px; background:var(--copper-soft);
+    border:1px solid var(--copper); color:var(--ink); border-radius:20px;
+    padding:5px 6px 5px 12px; font-size:12px; font-weight:500;
+  }
+  .pending-chip .pc-remove{
+    width:16px; height:16px; border-radius:50%; background:var(--copper); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:10px; cursor:pointer; flex-shrink:0;
+  }
+
+  /* --- Sammlung: 7-Spalten-Layout nach Münztyp --- */
+  /* --- Sammlung: fixer Kopfbereich + scrollbarer Jahrgangs-Bereich --- */
+  #view-sammlung.active{
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .sammlung-fixed-top{
+    flex-shrink:0; background:var(--bg);
+  }
+  .search-wrap{position:relative;}
+  .sammlung-scroll-body{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .sammlung-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
+  .sammlung-col-header-row{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
+    margin-top:4px;
+  }
+  .sammlung-col-header-row .col-header{
+    font-size:9.5px; font-weight:700; text-align:center; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.01em; padding-bottom:6px;
+    border-bottom:1px solid var(--border); line-height:1.25;
+  }
+  .sammlung-columns{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:5px;
+  }
+  .sammlung-column{
+    display:flex; flex-direction:column; gap:5px;
+  }
+  .col-years{display:flex; flex-direction:column; gap:5px;}
+  .col-years .year-chip{cursor:pointer;}
+  .col-years .year-chip:active{opacity:0.8;}
+
+  /* --- Jahrgangs-Raster im Erfassungsformular --- */
+  .year-chip.pick-available{cursor:pointer;}
+  .year-chip.pick-available:active{background:var(--copper-soft);}
+  .year-chip.pick-owned{background:var(--border); color:var(--ink-soft); opacity:0.6;}
+  .year-chip.pick-selected{background:var(--copper); color:#fff; border-color:var(--copper);}
+  .year-chip.missing{background:var(--surface); color:var(--ink-soft);}
+
+  /* --- Statistiken --- */
+  .stat-block{margin-bottom:22px;}
+  .stat-block-title{
+    font-family:var(--font-main); font-size:15px; font-weight:600; margin-bottom:10px;
+  }
+  .stat-block-note{
+    font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5;
+  }
+  .value-chart-svg{
+    width:100%; height:140px; display:block; background:var(--surface);
+    border:1px solid var(--border); border-radius:16px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Münzsammlung</h1>
+  </div>
+  <button class="theme-toggle" id="themeToggle" aria-label="Darstellung wechseln">🌙</button>
+</header>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="hero-card">
+      <div class="hero-label">Gesamtwert der Sammlung</div>
+      <div class="hero-value"><span class="ccy">CHF</span><span id="totalValue">0.00</span></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="num" id="statCount">0</div>
+        <div class="lbl">Münzen gesamt</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statMissing">–</div>
+        <div class="lbl">Fehlende Münzen</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h2>Fortschritt je Münztyp</h2>
+    </div>
+    <div id="progressList"></div>
+
+    <div style="text-align:right; margin-top:8px;">
+      <a href="#" data-nav="statistiken" style="color:var(--copper); text-decoration:none; font-size:13px; font-weight:500;">Statistiken →</a>
+    </div>
+  </section>
+
+  <!-- SAMMLUNG -->
+  <section class="view" id="view-sammlung">
+    <div class="sammlung-fixed-top">
+      <div class="search-wrap">
+        <div class="search-row">
+          <input type="text" class="search-input" id="searchInput" placeholder="Suche: Nominal, Jahrgang …">
+          <button type="button" class="filter-toggle-btn" id="filterToggle">
+            ⚗<span class="filter-badge" id="filterBadge" style="display:none;">0</span>
+          </button>
+        </div>
+
+        <div class="filter-panel" id="filterPanel">
+          <div class="filter-row">
+            <div>
+              <label for="flt-nominal">Nominal</label>
+              <select id="flt-nominal"><option value="">Alle</option></select>
+            </div>
+            <div></div>
+          </div>
+          <div class="filter-row">
+            <div>
+              <label for="flt-jahr-von">Jahrgang von</label>
+              <input type="number" id="flt-jahr-von" placeholder="1850">
+            </div>
+            <div>
+              <label for="flt-jahr-bis">Jahrgang bis</label>
+              <input type="number" id="flt-jahr-bis" placeholder="2026">
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" id="filterReset" style="width:100%;">Filter zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="list-count" id="sammlungCount">0 Münzen</div>
+      <div class="sammlung-col-header-row" id="sammlungColHeaderRow"></div>
+    </div>
+
+    <div class="sammlung-scroll-body" id="sammlungScrollBody">
+      <div id="sammlungList"></div>
+    </div>
+  </section>
+
+  <!-- FEHLENDE -->
+  <section class="view" id="view-fehlende">
+    <div class="fehlende-fixed-top">
+      <div class="fehlende-col-header-row" id="fehlendeColHeaderRow"></div>
+    </div>
+    <div class="fehlende-scroll-body" id="fehlendeScrollBody">
+      <div class="fehlende-columns" id="fehlendeColumns"></div>
+    </div>
+  </section>
+
+  <!-- STATISTIKEN -->
+  <section class="view" id="view-statistiken">
+    <div class="section-title" style="margin-top:0;">
+      <h2>← <a href="#" data-nav="dashboard" style="color:var(--ink); text-decoration:none;">Übersicht</a></h2>
+    </div>
+
+    <div class="stat-block">
+      <div class="stat-block-title">Gesamtwertentwicklung</div>
+      <div id="valueChartWrap"></div>
+      <div class="stat-block-note" id="valueChartNote"></div>
+    </div>
+
+    <div class="stat-block">
+      <div class="stat-block-title">Anzahl Münzen pro Jahrgang</div>
+      <div id="countByYearList" class="breakdown-list"></div>
+    </div>
+  </section>
+
+  <!-- EINSTELLUNGEN -->
+  <section class="view" id="view-einstellungen">
+    <div class="section-title" style="margin-top:0;"><h2>Fehlende Münzen: Sollbereich</h2></div>
+    <div class="hint-box">
+      Gilt für alle Münztypen gleichermassen. Ob in jedem Jahr davon tatsächlich geprägt wurde, ist nicht für alle Nominale gesichert – 100 % ist daher möglicherweise nicht erreichbar.
+    </div>
+    <div class="field-row">
+      <div>
+        <label for="range-from">Von Jahr</label>
+        <input type="number" id="range-from" placeholder="1850">
+      </div>
+      <div>
+        <label for="range-to">Bis Jahr</label>
+        <input type="number" id="range-to" placeholder="aktuelles Jahr">
+      </div>
+    </div>
+    <div class="export-actions">
+      <button type="button" class="btn btn-primary export-btn" id="rangeSaveBtn">Sollbereich speichern</button>
+    </div>
+
+    <div class="section-title"><h2>Export</h2></div>
+    <div class="hint-box">
+      Export enthält alle erfassten Textfelder deiner Sammlung.
+    </div>
+    <div class="export-actions">
+      <button type="button" class="btn btn-secondary export-btn" id="exportCsvBtn">CSV exportieren</button>
+      <button type="button" class="btn btn-secondary export-btn" id="exportExcelBtn">Excel exportieren</button>
+      <button type="button" class="btn btn-secondary export-btn" id="exportPdfBtn">PDF exportieren</button>
+    </div>
+
+    <div class="section-title"><h2>Backup</h2></div>
+    <div class="hint-box">
+      Das Backup enthält deine komplette Sammlung und den Wertverlauf – im Gegensatz zu CSV/Excel/PDF also vollständig wiederherstellbar.
+    </div>
+    <div class="export-actions">
+      <button type="button" class="btn btn-secondary export-btn" id="backupCreateBtn">Backup erstellen</button>
+      <button type="button" class="btn btn-secondary export-btn" id="backupRestoreBtn">Backup wiederherstellen</button>
+      <input type="file" id="backupFileInput" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="section-title"><h2>Darstellung</h2></div>
+    <div class="placeholder-view" style="padding:16px 0; text-align:left;">
+      <p>Dark/Light Mode ist oben rechts im Header verfügbar.</p>
+    </div>
+  </section>
+
+  <div class="print-only" id="printArea"></div>
+
+</main>
+
+<button class="fab" id="fabAdd" aria-label="Neue Münze erfassen">+</button>
+
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet">
+    <div class="sheet-header">
+      <h2 id="sheetTitle">Neue Münze</h2>
+      <button class="sheet-close" id="sheetClose">✕</button>
+    </div>
+
+    <form id="coinForm">
+      <input type="hidden" id="f-id">
+
+      <div class="field-group">
+        <div class="fg-title">Münztyp wählen</div>
+        <div class="nominal-tile-grid" id="nominalTileGrid"></div>
+        <input type="hidden" id="f-nominalwert">
+      </div>
+
+      <div class="field-group" id="jahrgangPickWrap" style="display:none;">
+        <div class="fg-title">Jahrgang wählen</div>
+        <div class="year-grid" id="addYearGrid"></div>
+        <div class="stat-block-note" id="jahrgangPickNote">Ausgegraute Jahrgänge sind bereits in deiner Sammlung.</div>
+        <input type="hidden" id="f-jahrgang">
+      </div>
+
+      <div class="field-group" id="pendingWrap" style="display:none;">
+        <div class="fg-title">Ausgewählt <span id="pendingCount"></span></div>
+        <div class="pending-list" id="pendingList"></div>
+      </div>
+
+      <input type="hidden" id="f-muenztyp" value="Umlaufmünze">
+      <input type="hidden" id="f-land" value="Schweiz">
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none;">Löschen</button>
+        <button type="button" class="btn btn-secondary" id="cancelBtn">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<nav class="tabbar">
+  <button class="active" data-nav="dashboard"><span class="ic">◈</span>Übersicht</button>
+  <button data-nav="sammlung"><span class="ic">🪙</span>Sammlung</button>
+  <button data-nav="fehlende"><span class="ic">◐</span>Fehlende</button>
+  <button data-nav="einstellungen"><span class="ic">⚙</span>Mehr</button>
+</nav>
+
+<script>
+/* ======================================================
+   STORAGE-ABSTRAKTION
+   Jetzt: IndexedDB – läuft komplett lokal im Browser, kein
+   Claude-Account, keine Internetverbindung nötig. Gleiche
+   get/set-API wie zuvor, daher keine Änderungen im restlichen Code.
+   ====================================================== */
+const IDB_NAME = 'muenzkabinettDB';
+const IDB_STORE = 'kv';
+
+function openIdb(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+const idbPromise = openIdb();
+
+const Storage = {
+  async get(key){
+    try{
+      const db = await idbPromise;
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result !== undefined ? req.result : null);
+        req.onerror = () => reject(req.error);
+      });
+    }catch(e){ console.error('Storage-Fehler (get):', e); return null; }
+  },
+  async set(key, value){
+    try{
+      const db = await idbPromise;
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const req = tx.objectStore(IDB_STORE).put(value, key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+      });
+    }catch(e){ console.error('Storage-Fehler (set):', e); return false; }
+  }
+};
+
+/* ======================================================
+   DATENMODELL
+   Eine Münze = ein Objekt nach diesem Schema.
+   Wird ab Schritt 2 über das Erfassungsformular befüllt.
+   ====================================================== */
+function createEmptyCoin(){
+  return {
+    id: crypto.randomUUID(),
+    land: 'Schweiz',
+    nominalwert: '',        // z.B. "5 Rappen", "1 Franken"
+    jahrgang: null,
+    muenztyp: 'Umlaufmünze',
+    erstelltAm: new Date().toISOString()
+  };
+}
+
+const DB_KEY = 'coins:collection';
+
+async function loadCoins(){
+  const data = await Storage.get(DB_KEY);
+  return data || [];
+}
+async function saveCoins(coins){
+  return Storage.set(DB_KEY, coins);
+}
+
+/* ======================================================
+   NAVIGATION
+   ====================================================== */
+function navigate(viewName){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + viewName).classList.add('active');
+  document.querySelectorAll('nav.tabbar button').forEach(b => {
+    b.classList.toggle('active', b.dataset.nav === viewName);
+  });
+  const fab = document.getElementById('fabAdd');
+  fab.style.display = (viewName === 'sammlung') ? 'flex' : 'none';
+  if(viewName === 'sammlung'){
+    requestAnimationFrame(adjustSammlungScrollHeight);
+  }
+  if(viewName === 'fehlende'){
+    requestAnimationFrame(adjustFehlendeScrollHeight);
+  }
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('[data-nav]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate(el.dataset.nav);
+  });
+});
+
+/* ======================================================
+   THEME (Dark/Light)
+   ====================================================== */
+const themeToggle = document.getElementById('themeToggle');
+async function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+  await Storage.set('settings:theme', theme);
+}
+themeToggle.addEventListener('click', async () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  await applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+/* ======================================================
+   DASHBOARD-RENDERING
+   ====================================================== */
+const chf = (n) => (n || 0).toLocaleString('de-CH', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+async function renderDashboard(){
+  const coins = await loadCoins();
+
+  const totalValue = coins.reduce((sum, c) => sum + effectiveValue(c), 0);
+  const totalCount = coins.length;
+
+  document.getElementById('totalValue').textContent = chf(totalValue);
+  document.getElementById('statCount').textContent = totalCount;
+
+  await recordValueSnapshot(totalValue);
+
+  const range = await loadMissingRange();
+  const progressList = document.getElementById('progressList');
+  progressList.innerHTML = SWISS_COIN_TYPES.map(t => {
+    const prog = computeSeriesProgress(t.label, range, coins);
+    const percent = prog.total > 0 ? Math.round((prog.ownedCount / prog.total) * 100) : 0;
+    return `
+      <div class="series-card">
+        <div class="series-head">
+          <div>
+            <div class="s-name">${t.label}</div>
+            <div class="s-sub">${prog.ownedCount}/${prog.total} vorhanden</div>
+          </div>
+          <div class="s-percent">${percent}%</div>
+        </div>
+        <div class="series-progress-bg"><div class="series-progress-fill" style="width:${percent}%"></div></div>
+      </div>`;
+  }).join('');
+}
+
+/* ======================================================
+   REFERENZDATENBANK: Offizielle Schweizer Münzen
+   Aktuell nur Umlaufmünzen (Stand 2026). Erweiterbar um
+   Gedenkmünzen, Goldvreneli, Sonderprägungen in späterem Schritt.
+   Jahrgangsbereich bewusst allgemein gehalten (1850 = Einführung
+   Schweizer Franken als Dezimalwährung) – exakte, lückenlose
+   Prägejahr-Listen pro Nominal folgen erst mit "Fehlende Münzen"
+   (Schritt 4), da diese Angaben verifiziert werden müssen.
+   ====================================================== */
+const SWISS_COIN_TYPES = [
+  { id: 'rp5',  label: '5 Rappen', short: '5 Rp' },
+  { id: 'rp10', label: '10 Rappen', short: '10 Rp' },
+  { id: 'rp20', label: '20 Rappen', short: '20 Rp' },
+  { id: 'fr05', label: '½ Franken', short: '½ Fr' },
+  { id: 'fr1',  label: '1 Franken', short: '1 Fr' },
+  { id: 'fr2',  label: '2 Franken', short: '2 Fr' },
+  { id: 'fr5',  label: '5 Franken', short: '5 Fr' },
+];
+
+// Effektiver (Nenn-)Wert je Münztyp in CHF – amtlich festgelegt, keine Schätzung.
+const FACE_VALUE_CHF = {
+  '5 Rappen': 0.05,
+  '10 Rappen': 0.10,
+  '20 Rappen': 0.20,
+  '½ Franken': 0.50,
+  '1 Franken': 1.00,
+  '2 Franken': 2.00,
+  '5 Franken': 5.00,
+};
+function effectiveValue(coin){
+  return FACE_VALUE_CHF[coin.nominalwert] || 0;
+}
+
+const JAHRGANG_MIN = 1850;
+const JAHRGANG_MAX = new Date().getFullYear();
+
+function getUsedYears(denomination, excludeId){
+  return new Set(
+    coinsCache
+      .filter(c => c.nominalwert === denomination && c.id !== excludeId)
+      .map(c => c.jahrgang)
+  );
+}
+
+/* ======================================================
+   NEUE MÜNZE: KACHEL-AUSWAHL (Münztyp) + JAHRGANGS-RASTER
+   Im Neu-Modus können mehrere Münzen (auch verschiedener
+   Nominale) in einem Durchgang ausgewählt und gemeinsam
+   gespeichert werden. Beim Bearbeiten bleibt es bei einer
+   einzelnen Auswahl. Nutzt denselben unter "Mehr" einstellbaren
+   Sollbereich wie "Fehlende Münzen".
+   ====================================================== */
+let pendingSelections = []; // [{nominalwert, jahrgang}] – nur im Neu-Modus
+let currentViewedNominal = null;
+let isEditMode = false;
+
+function pendingCountFor(nominal){
+  return pendingSelections.filter(p => p.nominalwert === nominal).length;
+}
+
+async function renderNominalTiles(selected){
+  const grid = document.getElementById('nominalTileGrid');
+  grid.innerHTML = SWISS_COIN_TYPES.map(t => {
+    const count = isEditMode ? 0 : pendingCountFor(t.label);
+    return `
+    <div class="nominal-tile ${t.label === selected ? 'selected' : ''}" data-nominal="${t.label}">
+      ${t.short}${count > 0 ? `<span class="tile-badge">${count}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.nominal-tile').forEach(tile => {
+    tile.addEventListener('click', async () => {
+      const nominal = tile.dataset.nominal;
+      currentViewedNominal = nominal;
+      document.getElementById('f-nominalwert').value = nominal;
+      grid.querySelectorAll('.nominal-tile').forEach(t => t.classList.toggle('selected', t.dataset.nominal === nominal));
+      document.getElementById('f-jahrgang').value = '';
+      document.getElementById('jahrgangPickWrap').style.display = 'block';
+      const excludeId = document.getElementById('f-id').value || null;
+      const c = isEditMode ? coinsCache.find(x => x.id === excludeId) : null;
+      await renderAddYearGrid(nominal, isEditMode ? (c ? c.jahrgang : null) : null, excludeId);
+    });
+  });
+}
+
+async function renderAddYearGrid(nominal, selectedYear, excludeId){
+  const range = await loadMissingRange();
+  const used = getUsedYears(nominal, excludeId);
+  const grid = document.getElementById('addYearGrid');
+
+  let years = [];
+  for(let y = range.from; y <= range.to; y++) years.push(y);
+
+  grid.innerHTML = years.map(y => {
+    const isOwned = used.has(y);
+    const isPending = !isEditMode && pendingSelections.some(p => p.nominalwert === nominal && p.jahrgang === y);
+    const isSelected = isEditMode ? (y === selectedYear) : isPending;
+    const cls = isSelected ? 'pick-selected' : (isOwned ? 'pick-owned' : 'pick-available');
+    return `<div class="year-chip ${cls}" data-year="${y}">${y}</div>`;
+  }).join('');
+
+  document.getElementById('jahrgangPickNote').textContent = isEditMode
+    ? 'Ausgegraute Jahrgänge sind bereits in deiner Sammlung.'
+    : 'Tippe mehrere Jahrgänge an, um mehrere Münzen auf einmal zu erfassen.';
+
+  grid.querySelectorAll('.year-chip.pick-available, .year-chip.pick-selected').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const year = Number(chip.dataset.year);
+
+      if(isEditMode){
+        document.getElementById('f-jahrgang').value = year;
+        grid.querySelectorAll('.year-chip').forEach(c => {
+          if(c.classList.contains('pick-owned')) return;
+          c.classList.toggle('pick-selected', Number(c.dataset.year) === year);
+          c.classList.toggle('pick-available', Number(c.dataset.year) !== year);
+        });
+        return;
+      }
+
+      const idx = pendingSelections.findIndex(p => p.nominalwert === nominal && p.jahrgang === year);
+      if(idx >= 0){
+        pendingSelections.splice(idx, 1);
+        chip.classList.remove('pick-selected');
+        chip.classList.add('pick-available');
+      } else {
+        pendingSelections.push({ nominalwert: nominal, jahrgang: year });
+        chip.classList.remove('pick-available');
+        chip.classList.add('pick-selected');
+      }
+      renderNominalTiles(currentViewedNominal);
+      renderPendingList();
+    });
+  });
+}
+
+function renderPendingList(){
+  const wrap = document.getElementById('pendingWrap');
+  const list = document.getElementById('pendingList');
+  const countEl = document.getElementById('pendingCount');
+
+  if(pendingSelections.length === 0){
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  countEl.textContent = `(${pendingSelections.length})`;
+  list.innerHTML = pendingSelections.map((p, i) => `
+    <div class="pending-chip">
+      ${p.nominalwert} · ${p.jahrgang}
+      <span class="pc-remove" data-index="${i}">✕</span>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.pc-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const removed = pendingSelections.splice(Number(btn.dataset.index), 1)[0];
+      renderPendingList();
+      renderNominalTiles(currentViewedNominal);
+      if(currentViewedNominal === removed.nominalwert){
+        const excludeId = document.getElementById('f-id').value || null;
+        await renderAddYearGrid(currentViewedNominal, null, excludeId);
+      }
+    });
+  });
+}
+
+/* ======================================================
+   FEHLENDE MÜNZEN: FORTSCHRITT
+   Sollbereich ist unter "Mehr" einstellbar (Standard: 1850 =
+   Einführung Schweizer Franken, bis heute), gilt für alle Nominale.
+   ====================================================== */
+const MISSING_RANGE_KEY = 'settings:missingRange';
+const DEFAULT_RANGE = { from: 1850, to: JAHRGANG_MAX };
+
+async function loadMissingRange(){
+  const saved = await Storage.get(MISSING_RANGE_KEY);
+  return saved || DEFAULT_RANGE;
+}
+
+function computeSeriesProgress(denomLabel, range, coins){
+  const ownedYears = new Set(
+    coins.filter(c => c.nominalwert === denomLabel && c.jahrgang != null).map(c => c.jahrgang)
+  );
+  const years = [];
+  for(let y = range.from; y <= range.to; y++){
+    years.push({ year: y, owned: ownedYears.has(y) });
+  }
+  const ownedCount = years.filter(y => y.owned).length;
+  const total = years.length;
+  return { years, ownedCount, total, missingCount: total - ownedCount };
+}
+
+async function renderFehlende(){
+  const coins = await loadCoins();
+  const range = await loadMissingRange();
+
+  document.getElementById('fehlendeColHeaderRow').innerHTML = SWISS_COIN_TYPES.map(t =>
+    `<div class="fehlende-col-header">${t.short}</div>`
+  ).join('');
+
+  const container = document.getElementById('fehlendeColumns');
+  let totalMissingAcrossAll = 0;
+
+  container.innerHTML = SWISS_COIN_TYPES.map(t => {
+    const prog = computeSeriesProgress(t.label, range, coins);
+    totalMissingAcrossAll += prog.missingCount;
+
+    return `
+      <div class="fehlende-col">
+        ${prog.years.map(y => {
+          const isDecadeBoundary = y.year % 10 === 0 && y.year !== range.from;
+          return `<div class="year-chip ${y.owned ? 'owned' : 'missing'}${isDecadeBoundary ? ' decade-gap' : ''}">${y.year}</div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+
+  document.getElementById('statMissing').textContent = totalMissingAcrossAll;
+
+  adjustFehlendeScrollHeight();
+}
+
+function adjustFehlendeScrollHeight(){
+  const fixedTop = document.querySelector('.fehlende-fixed-top');
+  const scrollBody = document.getElementById('fehlendeScrollBody');
+  const topbar = document.querySelector('header.topbar');
+  const tabbar = document.querySelector('nav.tabbar');
+  if(!fixedTop || !scrollBody || !topbar || !tabbar) return;
+
+  const topbarH = topbar.offsetHeight;
+  const tabbarH = tabbar.offsetHeight;
+  const fixedTopH = fixedTop.offsetHeight;
+  const mainPadding = 40; // main{padding:20px} oben+unten
+
+  const available = window.innerHeight - topbarH - tabbarH - fixedTopH - mainPadding;
+  scrollBody.style.maxHeight = Math.max(available, 160) + 'px';
+}
+window.addEventListener('resize', adjustFehlendeScrollHeight);
+
+/* ======================================================
+   STATISTIKEN
+   Hinweis: Die Gesamtwertentwicklung wird erst ab jetzt
+   aufgezeichnet (ein Datenpunkt pro Kalendertag, an dem die
+   App genutzt wird). Rückwirkende Werte gibt es nicht, da
+   frühere Stände nicht gespeichert wurden.
+   ====================================================== */
+const VALUE_HISTORY_KEY = 'stats:valueHistory';
+
+async function recordValueSnapshot(totalValue){
+  const history = (await Storage.get(VALUE_HISTORY_KEY)) || [];
+  const todayKey = new Date().toISOString().slice(0,10);
+  const idx = history.findIndex(h => h.date === todayKey);
+  if(idx >= 0){
+    history[idx].value = totalValue;
+  } else {
+    history.push({ date: todayKey, value: totalValue });
+  }
+  const capped = history.slice(-365);
+  await Storage.set(VALUE_HISTORY_KEY, capped);
+  return capped;
+}
+
+function renderValueChart(history){
+  const wrap = document.getElementById('valueChartWrap');
+  const note = document.getElementById('valueChartNote');
+
+  if(history.length < 2){
+    wrap.innerHTML = `<div class="empty-state">Noch nicht genug Datenpunkte für einen Verlauf.</div>`;
+    note.textContent = 'Ab heute wird bei jeder Nutzung ein Wertpunkt gespeichert – der Verlauf füllt sich mit der Zeit.';
+    return;
+  }
+
+  const w = 600, h = 140, padX = 10, padY = 16;
+  const values = history.map(p => p.value);
+  const minV = Math.min(...values), maxV = Math.max(...values);
+  const range = (maxV - minV) || 1;
+
+  const points = history.map((p, i) => {
+    const x = padX + (i / (history.length - 1)) * (w - padX * 2);
+    const y = h - padY - ((p.value - minV) / range) * (h - padY * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const areaPath = `M${points[0]} L${points.join(' L')} L${w - padX},${h - padY} L${padX},${h - padY} Z`;
+  const linePath = `M${points.join(' L')}`;
+
+  wrap.innerHTML = `
+    <svg class="value-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path d="${areaPath}" fill="var(--copper-soft)" stroke="none"></path>
+      <path d="${linePath}" fill="none" stroke="var(--copper)" stroke-width="2"></path>
+    </svg>`;
+  note.textContent = `${history[0].date} bis ${history[history.length-1].date} · CHF ${chf(minV)}–${chf(maxV)}`;
+}
+
+function renderCountByYear(coins){
+  const map = new Map();
+  coins.forEach(c => {
+    if(c.jahrgang == null) return;
+    map.set(c.jahrgang, (map.get(c.jahrgang) || 0) + 1);
+  });
+  const rows = [...map.entries()]
+    .map(([year, count]) => ({ label: String(year), value: count, count }))
+    .sort((a,b) => Number(a.label) - Number(b.label));
+
+  const container = document.getElementById('countByYearList');
+  if(rows.length === 0){
+    container.innerHTML = `<div class="empty-state" style="border:none; padding:20px;">Noch keine Daten.</div>`;
+    return;
+  }
+  const maxCount = Math.max(...rows.map(r => r.count), 1);
+  container.innerHTML = rows.map(r => `
+    <div class="breakdown-row">
+      <div class="brow-top">
+        <div class="brow-label">${r.label}</div>
+        <div class="brow-value">${r.count} Münze${r.count === 1 ? '' : 'n'}</div>
+      </div>
+      <div class="brow-bar-bg"><div class="brow-bar-fill" style="width:${(r.count / maxCount * 100).toFixed(1)}%"></div></div>
+    </div>
+  `).join('');
+}
+
+async function renderStatistiken(){
+  const coins = await loadCoins();
+
+  const history = await Storage.get(VALUE_HISTORY_KEY) || [];
+  renderValueChart(history);
+
+  renderCountByYear(coins);
+}
+
+/* ======================================================
+   SAMMLUNG-RENDERING & SUCHE
+   ====================================================== */
+let coinsCache = [];
+let searchTerm = '';
+
+function matchesSearch(c, term){
+  if(!term) return true;
+  const haystack = [c.nominalwert, c.jahrgang].map(v => (v ?? '').toString().toLowerCase()).join(' ');
+  return haystack.includes(term.toLowerCase());
+}
+
+let filters = { nominal:'', jahrVon:'', jahrBis:'' };
+
+function matchesFilters(c, f){
+  if(f.nominal && c.nominalwert !== f.nominal) return false;
+  if(f.jahrVon && (!c.jahrgang || c.jahrgang < Number(f.jahrVon))) return false;
+  if(f.jahrBis && (!c.jahrgang || c.jahrgang > Number(f.jahrBis))) return false;
+  return true;
+}
+
+function activeFilterCount(f){
+  return Object.values(f).filter(v => v !== '' && v != null).length;
+}
+
+function populateFilterOptions(){
+  const nominalSel = document.getElementById('flt-nominal');
+  const currentNominal = nominalSel.value;
+  nominalSel.innerHTML = '<option value="">Alle</option>' +
+    SWISS_COIN_TYPES.map(t => `<option value="${t.label}">${t.label}</option>`).join('');
+  nominalSel.value = currentNominal;
+}
+
+async function renderSammlung(){
+  coinsCache = await loadCoins();
+  populateFilterOptions();
+
+  const filtered = coinsCache.filter(c => matchesSearch(c, searchTerm) && matchesFilters(c, filters));
+  const activeCount = activeFilterCount(filters);
+
+  const badge = document.getElementById('filterBadge');
+  badge.textContent = activeCount;
+  badge.style.display = activeCount > 0 ? 'flex' : 'none';
+
+  document.getElementById('sammlungCount').textContent =
+    `${filtered.length} Münze${filtered.length === 1 ? '' : 'n'}${(searchTerm || activeCount) ? ' (gefiltert)' : ''}`;
+
+  document.getElementById('sammlungColHeaderRow').innerHTML = SWISS_COIN_TYPES.map(t =>
+    `<div class="col-header">${t.short}</div>`
+  ).join('');
+
+  const list = document.getElementById('sammlungList');
+  if(filtered.length === 0){
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="icon">🔍</span>
+        ${(searchTerm || activeCount) ? 'Keine Treffer für Suche/Filter.' : 'Noch keine Münzen erfasst. Tippe auf + zum Hinzufügen.'}
+      </div>`;
+    adjustSammlungScrollHeight();
+    return;
+  }
+
+  list.innerHTML = `<div class="sammlung-columns">${
+    SWISS_COIN_TYPES.map(t => {
+      const coinsOfType = filtered
+        .filter(c => c.nominalwert === t.label)
+        .sort((a,b) => (b.jahrgang||0) - (a.jahrgang||0));
+      return `
+        <div class="sammlung-column">
+          <div class="col-years">
+            ${coinsOfType.map(c => `<div class="year-chip owned" data-id="${c.id}">${c.jahrgang ?? '–'}</div>`).join('')}
+          </div>
+        </div>`;
+    }).join('')
+  }</div>`;
+
+  list.querySelectorAll('.col-years .year-chip').forEach(chip => {
+    chip.addEventListener('click', () => openForm(chip.dataset.id));
+  });
+
+  adjustSammlungScrollHeight();
+}
+
+function adjustSammlungScrollHeight(){
+  const fixedTop = document.querySelector('.sammlung-fixed-top');
+  const scrollBody = document.getElementById('sammlungScrollBody');
+  const topbar = document.querySelector('header.topbar');
+  const tabbar = document.querySelector('nav.tabbar');
+  if(!fixedTop || !scrollBody || !topbar || !tabbar) return;
+
+  const topbarH = topbar.offsetHeight;
+  const tabbarH = tabbar.offsetHeight;
+  const fixedTopH = fixedTop.offsetHeight;
+  const mainPadding = 40; // main{padding:20px} oben+unten
+
+  const available = window.innerHeight - topbarH - tabbarH - fixedTopH - mainPadding;
+  scrollBody.style.maxHeight = Math.max(available, 160) + 'px';
+}
+window.addEventListener('resize', adjustSammlungScrollHeight);
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchTerm = e.target.value;
+  renderSammlung();
+});
+
+const filterPanel = document.getElementById('filterPanel');
+document.getElementById('filterToggle').addEventListener('click', () => {
+  filterPanel.classList.toggle('open');
+});
+['flt-nominal','flt-jahr-von','flt-jahr-bis'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    filters = {
+      nominal: document.getElementById('flt-nominal').value,
+      jahrVon: document.getElementById('flt-jahr-von').value,
+      jahrBis: document.getElementById('flt-jahr-bis').value,
+    };
+    renderSammlung();
+  });
+});
+document.getElementById('filterReset').addEventListener('click', () => {
+  filters = { nominal:'', jahrVon:'', jahrBis:'' };
+  ['flt-nominal','flt-jahr-von','flt-jahr-bis'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  renderSammlung();
+});
+
+/* ======================================================
+   FORMULAR: ÖFFNEN / SCHLIESSEN
+   ====================================================== */
+const sheetOverlay = document.getElementById('sheetOverlay');
+const coinForm = document.getElementById('coinForm');
+
+async function resetForm(){
+  coinForm.reset();
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-nominalwert').value = '';
+  document.getElementById('f-jahrgang').value = '';
+  document.getElementById('jahrgangPickWrap').style.display = 'none';
+  document.getElementById('addYearGrid').innerHTML = '';
+  document.getElementById('deleteBtn').style.display = 'none';
+  pendingSelections = [];
+  currentViewedNominal = null;
+  isEditMode = false;
+  renderPendingList();
+  await renderNominalTiles(null);
+}
+
+async function openForm(coinId){
+  await resetForm();
+  if(coinId){
+    isEditMode = true;
+    const c = coinsCache.find(x => x.id === coinId);
+    if(!c) return;
+    document.getElementById('sheetTitle').textContent = 'Münze bearbeiten';
+    document.getElementById('f-id').value = c.id;
+    document.getElementById('f-nominalwert').value = c.nominalwert || '';
+    currentViewedNominal = c.nominalwert || null;
+    await renderNominalTiles(c.nominalwert || null);
+    document.getElementById('jahrgangPickWrap').style.display = 'block';
+    await renderAddYearGrid(c.nominalwert, c.jahrgang, c.id);
+    document.getElementById('f-jahrgang').value = c.jahrgang ?? '';
+    document.getElementById('deleteBtn').style.display = '';
+  } else {
+    document.getElementById('sheetTitle').textContent = 'Neue Münze(n)';
+  }
+  sheetOverlay.classList.add('open');
+}
+
+function closeForm(){
+  sheetOverlay.classList.remove('open');
+}
+
+document.getElementById('fabAdd').addEventListener('click', () => openForm(null));
+document.getElementById('sheetClose').addEventListener('click', closeForm);
+document.getElementById('cancelBtn').addEventListener('click', closeForm);
+sheetOverlay.addEventListener('click', (e) => { if(e.target === sheetOverlay) closeForm(); });
+
+/* ======================================================
+   FORMULAR: SPEICHERN / LÖSCHEN
+   ====================================================== */
+coinForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('f-id').value;
+  const isEdit = !!id;
+
+  if(!isEdit){
+    // Neu-Modus: alle ausgewählten Münzen als Batch speichern
+    if(pendingSelections.length === 0){
+      alert('Bitte mindestens eine Münze auswählen.');
+      return;
+    }
+    let coins = await loadCoins();
+    const muenztyp = document.getElementById('f-muenztyp').value;
+    const land = document.getElementById('f-land').value;
+
+    const skipped = [];
+    pendingSelections.forEach(sel => {
+      const isDuplicate = coins.some(c => c.nominalwert === sel.nominalwert && c.jahrgang === sel.jahrgang);
+      if(isDuplicate){
+        skipped.push(`${sel.nominalwert} ${sel.jahrgang}`);
+        return;
+      }
+      const coin = createEmptyCoin();
+      coin.nominalwert = sel.nominalwert;
+      coin.jahrgang = sel.jahrgang;
+      coin.muenztyp = muenztyp;
+      coin.land = land;
+      coins.push(coin);
+    });
+
+    await saveCoins(coins);
+    closeForm();
+    await renderSammlung();
+    await renderDashboard();
+    await renderFehlende();
+    await renderStatistiken();
+
+    if(skipped.length > 0){
+      alert(`Übersprungen (bereits in Sammlung): ${skipped.join(', ')}`);
+    }
+    return;
+  }
+
+  // Bearbeiten-Modus: einzelne Münze aktualisieren
+  const coin = coinsCache.find(x => x.id === id);
+
+  coin.nominalwert = document.getElementById('f-nominalwert').value.trim();
+  coin.jahrgang = document.getElementById('f-jahrgang').value ? Number(document.getElementById('f-jahrgang').value) : null;
+  coin.muenztyp = document.getElementById('f-muenztyp').value;
+  coin.land = document.getElementById('f-land').value;
+
+  if(!coin.nominalwert){
+    alert('Bitte einen Nominalwert angeben.');
+    return;
+  }
+  if(!coin.jahrgang){
+    alert('Bitte einen Jahrgang angeben.');
+    return;
+  }
+
+  let coins = await loadCoins();
+
+  const duplicate = coins.find(c =>
+    c.id !== coin.id && c.nominalwert === coin.nominalwert && c.jahrgang === coin.jahrgang
+  );
+  if(duplicate){
+    alert(`${coin.nominalwert} ${coin.jahrgang} ist bereits in der Sammlung erfasst.`);
+    return;
+  }
+  coins = coins.map(c => c.id === id ? coin : c);
+  await saveCoins(coins);
+
+  closeForm();
+  await renderSammlung();
+  await renderDashboard();
+  await renderFehlende();
+  await renderStatistiken();
+});
+
+document.getElementById('deleteBtn').addEventListener('click', async () => {
+  const id = document.getElementById('f-id').value;
+  if(!id) return;
+  if(!confirm('Diese Münze wirklich löschen?')) return;
+  let coins = await loadCoins();
+  coins = coins.filter(c => c.id !== id);
+  await saveCoins(coins);
+  closeForm();
+  await renderSammlung();
+  await renderDashboard();
+  await renderFehlende();
+  await renderStatistiken();
+});
+
+/* ======================================================
+   EXPORT (CSV, Excel, PDF)
+   Hinweis: Für Excel wird kein externes Zusatzformat (.xlsx via
+   Bibliothek) erzeugt, sondern eine HTML-Tabelle mit .xls-Endung –
+   Excel öffnet das zuverlässig, ganz ohne Internet/CDN-Abhängigkeit.
+   PDF nutzt den nativen Browser-Druckdialog ("Als PDF speichern"),
+   ebenfalls ohne externe Bibliothek – beides bewusst so gewählt,
+   um die Offline-Anforderung nicht zu brechen.
+   ====================================================== */
+const EXPORT_COLUMNS = [
+  { key: 'land', label: 'Land' },
+  { key: 'nominalwert', label: 'Nominalwert' },
+  { key: 'jahrgang', label: 'Jahrgang' },
+  { key: 'muenztyp', label: 'Münztyp' },
+  { key: 'effektiverWertChf', label: 'Effektiver Wert (CHF)' },
+];
+
+function toExportRow(c){
+  return { ...c, effektiverWertChf: chf(effectiveValue(c)) };
+}
+
+function downloadBlob(content, filename, mimeType){
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value){
+  const s = (value ?? '').toString();
+  if(/[;"\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+  return s;
+}
+
+document.getElementById('exportCsvBtn').addEventListener('click', async () => {
+  const coins = (await loadCoins()).map(toExportRow);
+  const header = EXPORT_COLUMNS.map(c => c.label).join(';');
+  const rows = coins.map(c => EXPORT_COLUMNS.map(col => csvEscape(c[col.key])).join(';'));
+  const csv = '\uFEFF' + [header, ...rows].join('\r\n'); // BOM für Excel-Umlaute
+  downloadBlob(csv, `muenzsammlung_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8');
+});
+
+document.getElementById('exportExcelBtn').addEventListener('click', async () => {
+  const coins = (await loadCoins()).map(toExportRow);
+  const headerRow = `<tr>${EXPORT_COLUMNS.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
+  const bodyRows = coins.map(c =>
+    `<tr>${EXPORT_COLUMNS.map(col => `<td>${(c[col.key] ?? '').toString()}</td>`).join('')}</tr>`
+  ).join('');
+  const html = `
+    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head><meta charset="UTF-8"></head>
+    <body><table>${headerRow}${bodyRows}</table></body>
+    </html>`;
+  downloadBlob(html, `muenzsammlung_${new Date().toISOString().slice(0,10)}.xls`, 'application/vnd.ms-excel');
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+  const rawCoins = await loadCoins();
+  const totalValue = rawCoins.reduce((sum, c) => sum + effectiveValue(c), 0);
+  const coins = rawCoins.map(toExportRow);
+  const headerRow = `<tr>${EXPORT_COLUMNS.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
+  const bodyRows = coins.map(c =>
+    `<tr>${EXPORT_COLUMNS.map(col => `<td>${(c[col.key] ?? '').toString()}</td>`).join('')}</tr>`
+  ).join('');
+
+  document.getElementById('printArea').innerHTML = `
+    <h1>Münzsammlung</h1>
+    <div class="print-meta">Exportiert am ${new Date().toLocaleDateString('de-CH')} · ${rawCoins.length} Münzen · Gesamtwert CHF ${chf(totalValue)}</div>
+    <table>${headerRow}${bodyRows}</table>
+  `;
+  window.print();
+});
+
+/* ======================================================
+   BACKUP & WIEDERHERSTELLUNG
+   Vollständiges JSON aller App-Daten –
+   im Unterschied zu CSV/Excel/PDF komplett wiederherstellbar.
+   ====================================================== */
+const BACKUP_VERSION = 1;
+
+document.getElementById('backupCreateBtn').addEventListener('click', async () => {
+  const backup = {
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: {
+      coins: await loadCoins(),
+      valueHistory: (await Storage.get(VALUE_HISTORY_KEY)) || [],
+      theme: (await Storage.get('settings:theme')) || 'light',
+    }
+  };
+  downloadBlob(
+    JSON.stringify(backup, null, 2),
+    `muenzsammlung_backup_${new Date().toISOString().slice(0,10)}.json`,
+    'application/json'
+  );
+});
+
+document.getElementById('backupRestoreBtn').addEventListener('click', () => {
+  document.getElementById('backupFileInput').click();
+});
+
+document.getElementById('backupFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+
+  let parsed;
+  try{
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  }catch(err){
+    alert('Diese Datei konnte nicht gelesen werden. Ist es eine gültige Backup-Datei (.json)?');
+    return;
+  }
+
+  if(!parsed || typeof parsed !== 'object' || !parsed.data || !Array.isArray(parsed.data.coins)){
+    alert('Diese Datei hat nicht das erwartete Backup-Format.');
+    return;
+  }
+
+  const coinCount = parsed.data.coins.length;
+  const confirmed = confirm(
+    `Backup wiederherstellen?\n\n${coinCount} Münzen.\n\n` +
+    `ACHTUNG: Deine aktuellen Daten in der App werden dabei vollständig überschrieben. Dieser Schritt kann nicht rückgängig gemacht werden.`
+  );
+  if(!confirmed) return;
+
+  await saveCoins(parsed.data.coins);
+  await Storage.set(VALUE_HISTORY_KEY, Array.isArray(parsed.data.valueHistory) ? parsed.data.valueHistory : []);
+  if(parsed.data.theme) await applyTheme(parsed.data.theme);
+
+  await renderDashboard();
+  await renderSammlung();
+  await renderFehlende();
+  await renderStatistiken();
+
+  alert('Backup wurde wiederhergestellt.');
+});
+
+/* ======================================================
+   SOLLBEREICH-EINSTELLUNG (unter "Mehr")
+   ====================================================== */
+async function renderRangeSettings(){
+  const range = await loadMissingRange();
+  document.getElementById('range-from').value = range.from;
+  document.getElementById('range-to').value = range.to;
+}
+
+document.getElementById('rangeSaveBtn').addEventListener('click', async () => {
+  const from = Number(document.getElementById('range-from').value) || DEFAULT_RANGE.from;
+  const to = Number(document.getElementById('range-to').value) || DEFAULT_RANGE.to;
+  if(from > to){
+    alert('"Von Jahr" muss kleiner oder gleich "Bis Jahr" sein.');
+    return;
+  }
+  await Storage.set(MISSING_RANGE_KEY, { from, to });
+  await renderFehlende();
+  alert('Sollbereich gespeichert.');
+});
+
+/* ======================================================
+   TOPBAR-HÖHE (für sticky Spaltenköpfe bei "Fehlende Münzen")
+   ====================================================== */
+function updateTopbarHeightVar(){
+  const topbar = document.querySelector('header.topbar');
+  document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateTopbarHeightVar);
+
+/* ======================================================
+   INIT
+   ====================================================== */
+async function init(){
+  updateTopbarHeightVar();
+  const savedTheme = await Storage.get('settings:theme');
+  applyTheme(savedTheme || 'light');
+  navigate('dashboard');
+  await renderDashboard();
+  await renderSammlung();
+  await renderFehlende();
+  await renderStatistiken();
+  await renderRangeSettings();
+}
+init();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((e) => console.error('SW-Registrierung fehlgeschlagen:', e));
+  });
+}
+</script>
+
+</body>
+</html>
