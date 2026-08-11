@@ -43,7 +43,7 @@
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
-  html, body{height:100%; overflow:hidden;}
+  html, body{margin:0; padding:0;}
   body{
     background:var(--bg);
     color:var(--ink);
@@ -52,14 +52,13 @@
     transition:background .25s ease, color .25s ease;
   }
   .app-shell{
-    display:flex; flex-direction:column;
-    height:100vh; height:100dvh;
+    display:contents;
   }
   .mono{font-family:var(--font-main);}
   .serif{font-family:var(--font-main);}
 
   header.topbar{
-    flex-shrink:0; z-index:20;
+    position:fixed; top:0; left:0; right:0; z-index:20;
     display:flex; align-items:center; justify-content:space-between;
     padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
     background:var(--bg);
@@ -79,9 +78,11 @@
   }
 
   main{
-    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    max-width:640px; margin:0 auto; width:100%; padding:20px;
+    position:fixed; left:0; right:0;
+    top:var(--topbar-h, 76px); bottom:var(--tabbar-h, 76px);
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
+  .main-inner{max-width:640px; margin:0 auto; padding:20px; height:100%;}
 
   .view{display:none;}
   .view.active{display:block; animation:fade .2s ease;}
@@ -163,7 +164,7 @@
 
   /* --- Bottom nav --- */
   nav.tabbar{
-    flex-shrink:0; z-index:30;
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
     background:var(--surface); border-top:1px solid var(--border);
     display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }
@@ -497,6 +498,7 @@
 </header>
 
 <main>
+<div class="main-inner">
 
   <!-- DASHBOARD -->
   <section class="view active" id="view-dashboard">
@@ -644,6 +646,7 @@
 
   <div class="print-only" id="printArea"></div>
 
+</div><!-- /main-inner -->
 </main>
 
 <nav class="tabbar">
@@ -1574,6 +1577,17 @@ document.getElementById('rangeSaveBtn').addEventListener('click', async () => {
 /* ======================================================
    TABBAR-HÖHE (für Positionierung des FAB-Buttons)
    ====================================================== */
+/* ======================================================
+   APP-HÖHE (Workaround: 100dvh ist in als App installierten
+   iOS-Homescreen-Webapps teils unzuverlässig – window.innerHeight
+   per JS ist die verlässlichere Quelle)
+   ====================================================== */
+function updateTopbarHeightVar(){
+  const topbar = document.querySelector('header.topbar');
+  document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateTopbarHeightVar);
+
 function updateTabbarHeightVar(){
   const tabbar = document.querySelector('nav.tabbar');
   document.documentElement.style.setProperty('--tabbar-h', tabbar.offsetHeight + 'px');
@@ -1584,6 +1598,7 @@ window.addEventListener('resize', updateTabbarHeightVar);
    INIT
    ====================================================== */
 async function init(){
+  updateTopbarHeightVar();
   updateTabbarHeightVar();
   const savedTheme = await Storage.get('settings:theme');
   applyTheme(savedTheme || 'light');
