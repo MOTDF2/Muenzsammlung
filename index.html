@@ -43,20 +43,23 @@
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{height:100%; overflow:hidden;}
   body{
     background:var(--bg);
     color:var(--ink);
     font-family:var(--font-main);
     -webkit-font-smoothing:antialiased;
     transition:background .25s ease, color .25s ease;
-    padding-bottom:var(--tabbar-h, 84px);
-    padding-top:var(--topbar-h, 76px);
+  }
+  .app-shell{
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh;
   }
   .mono{font-family:var(--font-main);}
   .serif{font-family:var(--font-main);}
 
   header.topbar{
-    position:fixed; top:0; left:0; right:0; z-index:20;
+    flex-shrink:0; z-index:20;
     display:flex; align-items:center; justify-content:space-between;
     padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
     background:var(--bg);
@@ -75,7 +78,10 @@
     cursor:pointer; font-size:17px; color:var(--ink);
   }
 
-  main{max-width:640px; margin:0 auto; padding:20px;}
+  main{
+    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    max-width:640px; margin:0 auto; width:100%; padding:20px;
+  }
 
   .view{display:none;}
   .view.active{display:block; animation:fade .2s ease;}
@@ -157,7 +163,7 @@
 
   /* --- Bottom nav --- */
   nav.tabbar{
-    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    flex-shrink:0; z-index:30;
     background:var(--surface); border-top:1px solid var(--border);
     display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
   }
@@ -231,7 +237,7 @@
   /* --- FAB --- */
   .fab{
     position:fixed; right:20px; z-index:25;
-    bottom:calc(100px + env(safe-area-inset-bottom));
+    bottom:calc(var(--tabbar-h, 70px) + 16px);
     width:54px; height:54px; border-radius:50%;
     background:var(--copper); color:#fff; border:none;
     font-size:26px; display:flex; align-items:center; justify-content:center;
@@ -356,13 +362,13 @@
   .series-progress-fill{height:100%; background:var(--copper); border-radius:5px; transition:width .3s ease;}
 
   #view-fehlende.active{
-    display:flex; flex-direction:column; overflow:hidden;
+    display:flex; flex-direction:column; max-height:100%; overflow:hidden;
   }
   .fehlende-fixed-top{
     flex-shrink:0; background:var(--bg);
   }
   .fehlende-scroll-body{
-    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
     scrollbar-width:none; -ms-overflow-style:none;
   }
   .fehlende-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
@@ -428,14 +434,14 @@
   /* --- Sammlung: fixer Kopfbereich + scrollbarer Jahrgangs-Bereich --- */
   #view-sammlung.active{
     display:flex; flex-direction:column;
-    overflow:hidden;
+    max-height:100%; overflow:hidden;
   }
   .sammlung-fixed-top{
     flex-shrink:0; background:var(--bg);
   }
   .search-wrap{position:relative;}
   .sammlung-scroll-body{
-    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
     scrollbar-width:none; -ms-overflow-style:none;
   }
   .sammlung-scroll-body::-webkit-scrollbar{display:none; width:0; height:0;}
@@ -480,6 +486,8 @@
 </style>
 </head>
 <body>
+
+<div class="app-shell">
 
 <header class="topbar">
   <div class="brand">
@@ -638,6 +646,15 @@
 
 </main>
 
+<nav class="tabbar">
+  <button class="active" data-nav="dashboard"><span class="ic">◈</span>Übersicht</button>
+  <button data-nav="sammlung"><span class="ic">🪙</span>Sammlung</button>
+  <button data-nav="fehlende"><span class="ic">◐</span>Fehlende</button>
+  <button data-nav="einstellungen"><span class="ic">⚙</span>Mehr</button>
+</nav>
+
+</div><!-- /app-shell -->
+
 <button class="fab" id="fabAdd" aria-label="Neue Münze erfassen">+</button>
 
 <div class="sheet-overlay" id="sheetOverlay">
@@ -678,13 +695,6 @@
     </form>
   </div>
 </div>
-
-<nav class="tabbar">
-  <button class="active" data-nav="dashboard"><span class="ic">◈</span>Übersicht</button>
-  <button data-nav="sammlung"><span class="ic">🪙</span>Sammlung</button>
-  <button data-nav="fehlende"><span class="ic">◐</span>Fehlende</button>
-  <button data-nav="einstellungen"><span class="ic">⚙</span>Mehr</button>
-</nav>
 
 <script>
 /* ======================================================
@@ -770,13 +780,11 @@ function navigate(viewName){
   });
   const fab = document.getElementById('fabAdd');
   fab.style.display = (viewName === 'sammlung') ? 'flex' : 'none';
-  if(viewName === 'sammlung'){
-    requestAnimationFrame(adjustSammlungScrollHeight);
-  }
-  if(viewName === 'fehlende'){
-    requestAnimationFrame(adjustFehlendeScrollHeight);
-  }
-  window.scrollTo(0,0);
+  document.querySelector('main').scrollTop = 0;
+  const sammlungBody = document.getElementById('sammlungScrollBody');
+  if(sammlungBody) sammlungBody.scrollTop = 0;
+  const fehlendeBody = document.getElementById('fehlendeScrollBody');
+  if(fehlendeBody) fehlendeBody.scrollTop = 0;
 }
 document.querySelectorAll('[data-nav]').forEach(el => {
   el.addEventListener('click', (e) => {
@@ -1051,26 +1059,7 @@ async function renderFehlende(){
   }).join('');
 
   document.getElementById('statMissing').textContent = totalMissingAcrossAll;
-
-  adjustFehlendeScrollHeight();
 }
-
-function adjustFehlendeScrollHeight(){
-  const fixedTop = document.querySelector('.fehlende-fixed-top');
-  const scrollBody = document.getElementById('fehlendeScrollBody');
-  const topbar = document.querySelector('header.topbar');
-  const tabbar = document.querySelector('nav.tabbar');
-  if(!fixedTop || !scrollBody || !topbar || !tabbar) return;
-
-  const topbarH = topbar.offsetHeight;
-  const tabbarH = tabbar.offsetHeight;
-  const fixedTopH = fixedTop.offsetHeight;
-  const mainPadding = 40; // main{padding:20px} oben+unten
-
-  const available = window.innerHeight - topbarH - tabbarH - fixedTopH - mainPadding;
-  scrollBody.style.maxHeight = Math.max(available, 160) + 'px';
-}
-window.addEventListener('resize', adjustFehlendeScrollHeight);
 
 /* ======================================================
    STATISTIKEN
@@ -1221,7 +1210,6 @@ async function renderSammlung(){
         <span class="icon">🔍</span>
         ${(searchTerm || activeCount) ? 'Keine Treffer für Suche/Filter.' : 'Noch keine Münzen erfasst. Tippe auf + zum Hinzufügen.'}
       </div>`;
-    adjustSammlungScrollHeight();
     return;
   }
 
@@ -1242,26 +1230,7 @@ async function renderSammlung(){
   list.querySelectorAll('.col-years .year-chip').forEach(chip => {
     chip.addEventListener('click', () => openForm(chip.dataset.id));
   });
-
-  adjustSammlungScrollHeight();
 }
-
-function adjustSammlungScrollHeight(){
-  const fixedTop = document.querySelector('.sammlung-fixed-top');
-  const scrollBody = document.getElementById('sammlungScrollBody');
-  const topbar = document.querySelector('header.topbar');
-  const tabbar = document.querySelector('nav.tabbar');
-  if(!fixedTop || !scrollBody || !topbar || !tabbar) return;
-
-  const topbarH = topbar.offsetHeight;
-  const tabbarH = tabbar.offsetHeight;
-  const fixedTopH = fixedTop.offsetHeight;
-  const mainPadding = 40; // main{padding:20px} oben+unten
-
-  const available = window.innerHeight - topbarH - tabbarH - fixedTopH - mainPadding;
-  scrollBody.style.maxHeight = Math.max(available, 160) + 'px';
-}
-window.addEventListener('resize', adjustSammlungScrollHeight);
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchTerm = e.target.value;
@@ -1603,24 +1572,18 @@ document.getElementById('rangeSaveBtn').addEventListener('click', async () => {
 });
 
 /* ======================================================
-   TOPBAR-HÖHE (für sticky Spaltenköpfe bei "Fehlende Münzen")
+   TABBAR-HÖHE (für Positionierung des FAB-Buttons)
    ====================================================== */
-function updateTopbarHeightVar(){
-  const topbar = document.querySelector('header.topbar');
-  document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
-}
 function updateTabbarHeightVar(){
   const tabbar = document.querySelector('nav.tabbar');
   document.documentElement.style.setProperty('--tabbar-h', tabbar.offsetHeight + 'px');
 }
-window.addEventListener('resize', updateTopbarHeightVar);
 window.addEventListener('resize', updateTabbarHeightVar);
 
 /* ======================================================
    INIT
    ====================================================== */
 async function init(){
-  updateTopbarHeightVar();
   updateTabbarHeightVar();
   const savedTheme = await Storage.get('settings:theme');
   applyTheme(savedTheme || 'light');
