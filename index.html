@@ -43,15 +43,14 @@
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
-  html,body{height:100%;}
   body{
     background:var(--bg);
     color:var(--ink);
     font-family:var(--font-main);
     -webkit-font-smoothing:antialiased;
     transition:background .25s ease, color .25s ease;
-    padding-bottom:76px;
-    padding-top:var(--topbar-h, 70px);
+    padding-bottom:var(--tabbar-h, 84px);
+    padding-top:var(--topbar-h, 76px);
   }
   .mono{font-family:var(--font-main);}
   .serif{font-family:var(--font-main);}
@@ -59,7 +58,7 @@
   header.topbar{
     position:fixed; top:0; left:0; right:0; z-index:20;
     display:flex; align-items:center; justify-content:space-between;
-    padding:18px 20px 14px;
+    padding:calc(14px + env(safe-area-inset-top)) 20px 14px;
     background:var(--bg);
     border-bottom:1px solid var(--border);
   }
@@ -231,7 +230,8 @@
 
   /* --- FAB --- */
   .fab{
-    position:fixed; right:20px; bottom:88px; z-index:25;
+    position:fixed; right:20px; z-index:25;
+    bottom:calc(100px + env(safe-area-inset-bottom));
     width:54px; height:54px; border-radius:50%;
     background:var(--copper); color:#fff; border:none;
     font-size:26px; display:flex; align-items:center; justify-content:center;
@@ -1609,13 +1609,19 @@ function updateTopbarHeightVar(){
   const topbar = document.querySelector('header.topbar');
   document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
 }
+function updateTabbarHeightVar(){
+  const tabbar = document.querySelector('nav.tabbar');
+  document.documentElement.style.setProperty('--tabbar-h', tabbar.offsetHeight + 'px');
+}
 window.addEventListener('resize', updateTopbarHeightVar);
+window.addEventListener('resize', updateTabbarHeightVar);
 
 /* ======================================================
    INIT
    ====================================================== */
 async function init(){
   updateTopbarHeightVar();
+  updateTabbarHeightVar();
   const savedTheme = await Storage.get('settings:theme');
   applyTheme(savedTheme || 'light');
   navigate('dashboard');

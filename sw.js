@@ -1,7 +1,7 @@
 // Service Worker: cached die App-Shell, damit sie ganz ohne Internet startet.
 // Version erhöhen, wenn index.html/manifest.json geändert werden, damit
 // Nutzer die neue Version bekommen statt der alten aus dem Cache.
-const CACHE_NAME = 'muenzsammlung-v10';
+const CACHE_NAME = 'muenzsammlung-v11';
 const ASSETS = [
   './',
   './index.html',
