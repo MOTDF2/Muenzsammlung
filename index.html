@@ -50,7 +50,7 @@
     font-family:var(--font-main);
     -webkit-font-smoothing:antialiased;
     transition:background .25s ease, color .25s ease;
-    height:100vh; height:100svh;
+    height:100vh; height:100svh; height:var(--app-vh, 100svh);
     display:grid; grid-template-rows:auto 1fr auto;
     overflow:hidden;
   }
@@ -701,6 +701,24 @@
 </div>
 
 <script>
+/* ======================================================
+   APP-HÖHE (Workaround: reines CSS vh/svh füllt auf manchen als
+   App installierten iOS-Homescreen-Webapps den Bildschirm nicht
+   ganz aus – window.innerHeight per JS ist die verlässlichere
+   Quelle). Läuft so früh wie möglich, plus bei Resize/Rotation/
+   Rückkehr in den Vordergrund, falls der Wert sich noch ändert.
+   ====================================================== */
+function updateAppHeightVar(){
+  document.documentElement.style.setProperty('--app-vh', window.innerHeight + 'px');
+}
+updateAppHeightVar();
+window.addEventListener('resize', updateAppHeightVar);
+window.addEventListener('orientationchange', () => setTimeout(updateAppHeightVar, 150));
+window.addEventListener('pageshow', updateAppHeightVar);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') updateAppHeightVar();
+});
+
 /* ======================================================
    STORAGE-ABSTRAKTION
    Jetzt: IndexedDB – läuft komplett lokal im Browser, kein
