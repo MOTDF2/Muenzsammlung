@@ -6,7 +6,7 @@
 // Verbindung auf den Cache zurückfallen). Reine Assets (Icons) bleiben
 // Cache-First, da sie sich praktisch nie ändern. So kommen Updates zuverlässig
 // an, auch wenn die App bereits als Homescreen-Icon installiert ist.
-const CACHE_NAME = 'muenzsammlung-v19';
+const CACHE_NAME = 'muenzsammlung-v20';
 const NETWORK_FIRST = ['./', './index.html', './manifest.json'];
 const ASSETS = [
   './',

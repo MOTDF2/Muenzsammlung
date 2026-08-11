@@ -1577,6 +1577,7 @@ document.getElementById('rangeSaveBtn').addEventListener('click', async () => {
   }
   await Storage.set(MISSING_RANGE_KEY, { from, to });
   await renderFehlende();
+  await renderDashboard();
   alert('Sollbereich gespeichert.');
 });
 
