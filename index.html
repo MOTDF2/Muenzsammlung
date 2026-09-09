@@ -704,6 +704,13 @@ function updateTopbarHeightVar(){
 updateTopbarHeightVar();
 window.addEventListener('resize', updateTopbarHeightVar);
 window.addEventListener('orientationchange', () => setTimeout(updateTopbarHeightVar, 150));
+window.addEventListener('pageshow', updateTopbarHeightVar);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') updateTopbarHeightVar();
+});
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(updateTopbarHeightVar);
+}
 
 /* ======================================================
    STORAGE-ABSTRAKTION
@@ -1068,11 +1075,12 @@ async function renderFehlende(){
   container.innerHTML = SWISS_COIN_TYPES.map(t => {
     const prog = computeSeriesProgress(t.label, range, coins);
     totalMissingAcrossAll += prog.missingCount;
+    const yearsDesc = [...prog.years].reverse(); // neueste zuoberst
 
     return `
       <div class="fehlende-col">
-        ${prog.years.map(y => {
-          const isDecadeBoundary = y.year % 10 === 0 && y.year !== range.from;
+        ${yearsDesc.map((y, idx) => {
+          const isDecadeBoundary = idx !== 0 && y.year % 10 === 9;
           return `<div class="year-chip ${y.owned ? 'owned' : 'missing'}${isDecadeBoundary ? ' decade-gap' : ''}">${y.year}</div>`;
         }).join('')}
       </div>`;
@@ -1619,6 +1627,13 @@ function updateTabbarHeightVar(){
 }
 window.addEventListener('resize', updateTabbarHeightVar);
 window.addEventListener('orientationchange', () => setTimeout(updateTabbarHeightVar, 150));
+window.addEventListener('pageshow', updateTabbarHeightVar);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') updateTabbarHeightVar();
+});
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(updateTabbarHeightVar);
+}
 
 /* ======================================================
    INIT
