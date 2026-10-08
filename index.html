@@ -1144,21 +1144,21 @@ function renderValueChart(history){
   note.textContent = `${history[0].date} bis ${history[history.length-1].date} · CHF ${chf(minV)}–${chf(maxV)}`;
 }
 
-function renderCountByYear(coins){
-  const map = new Map();
+function renderCountByYear(coins, range){
+  const counts = new Map();
   coins.forEach(c => {
     if(c.jahrgang == null) return;
-    map.set(c.jahrgang, (map.get(c.jahrgang) || 0) + 1);
+    counts.set(c.jahrgang, (counts.get(c.jahrgang) || 0) + 1);
   });
-  const rows = [...map.entries()]
-    .map(([year, count]) => ({ label: String(year), value: count, count }))
-    .sort((a,b) => Number(a.label) - Number(b.label));
+
+  // Alle Jahre im Sollbereich, neueste zuoberst (auch Jahre ohne Münze)
+  const rows = [];
+  for(let y = range.to; y >= range.from; y--){
+    const count = counts.get(y) || 0;
+    rows.push({ label: String(y), count });
+  }
 
   const container = document.getElementById('countByYearList');
-  if(rows.length === 0){
-    container.innerHTML = `<div class="empty-state" style="border:none; padding:20px;">Noch keine Daten.</div>`;
-    return;
-  }
   const maxCount = Math.max(...rows.map(r => r.count), 1);
   container.innerHTML = rows.map(r => `
     <div class="breakdown-row">
@@ -1177,7 +1177,8 @@ async function renderStatistiken(){
   const history = await Storage.get(VALUE_HISTORY_KEY) || [];
   renderValueChart(history);
 
-  renderCountByYear(coins);
+  const range = await loadMissingRange();
+  renderCountByYear(coins, range);
 }
 
 /* ======================================================
@@ -1610,6 +1611,7 @@ document.getElementById('rangeSaveBtn').addEventListener('click', async () => {
   await Storage.set(MISSING_RANGE_KEY, { from, to });
   await renderFehlende();
   await renderDashboard();
+  await renderStatistiken();
   alert('Sollbereich gespeichert.');
 });
 
